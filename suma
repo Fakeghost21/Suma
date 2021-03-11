@@ -1,0 +1,116 @@
+assume cs:code, ds:data
+data segment
+	;zonacitire:nrMaxim, nrCitite, spaţiuCitire
+	sircitit db 6, ?, 6 dup(?)
+	len_zonacitire equ $-sircitit-2 ;scadem offseturile pentru nrMaxim si nrCitite
+	cifra db 10
+	cifra2 db 100
+	nr1 db ?
+	LinieNoua db 10,13,'$'
+	sir_rezultat db 4 dup(?) ; sirul rezultat a carui lungime am presupus-o de 4,maxim 3 cifre in suma 99 + 99 si inca un spatiu pentru '$'
+data ends
+
+code segment
+start:
+	mov ax,data
+	mov ds,ax
+	
+	;citim sirul care se va salva in variabila sircitit,de asemenea printeaza sirul citit
+	mov ah, 0Ah
+	mov dx, offset sircitit
+	int 21h
+	
+	mov ah, 09h 
+	mov dx, offset LinieNoua ;print linie noua
+	int 21h 
+	
+	mov si,2 ;incepem de la offsetul 2 dearece offsetul 0 reprezinta nrMaxim,iar offsetul 1 nrCitite
+	mov di,0
+	
+	mov al,sircitit[si]
+	sub al,48   ; pentru a obtine cifra din ASCII scadem 48
+	imul cifra
+	mov bl,al 
+	
+	mov al,sircitit[si + 1]
+	sub al,48
+	add bl,al ;bl va contine primul numar de doua cifre
+	mov nr1,bl
+	
+	mov al,sircitit[si + 3]
+	sub al,48   ; pentru a obtine  cifra
+	imul cifra
+	mov bl,al
+	
+	mov al,sircitit[si + 4]
+	sub al,48
+	add bl,al ;bl va contine al doilea numar
+	
+	add nr1,bl ;rezulta suma numerelor
+	mov al,nr1
+	mov ah,0
+	div cifra2 ;verificam daca are trei sau doua cifre suma celor doua numere
+	cmp al,0
+	je DouaCifre
+	jne TreiCifre
+	
+	DouaCifre: 
+		mov al,ah ;fiind doar doua cifre rezultatul impartirii la 100 se afla in ah(catul)
+		mov ah,0
+		div cifra ;al e catul,ah restul
+		mov bl,ah
+		add al,48
+		add bl,48
+		mov sir_rezultat[di],al ;adaugam in sirul rezultat cifrele obtinute
+		mov sir_rezultat[di+1],bl
+		add di,2
+		jmp afisare ;pentru a sari peste eticheta TreiCifre
+				
+	TreiCifre:
+		mov nr1,ah ;doua cifre
+		add al,48 
+		mov sir_rezultat[di],al
+		;mov dl,al
+		;mov ah,02h   
+		;int 21h
+		
+		mov al,nr1
+		mov ah,0
+		div cifra
+		mov bl,ah
+		add al,48
+		add bl,48
+		mov sir_rezultat[di+1],al
+		mov sir_rezultat[di+2],bl
+		add di,3
+	
+	
+	afisare:
+		;mov dl,al
+		;mov ah,02h    ; print a doua cifra din ziua lunii
+		;int 21h
+	
+		;mov dl,bl
+		;mov ah,02h    ; print a doua cifra din ziua lunii
+		;int 21h
+		mov sir_rezultat[di],'$' ;adaugam sfarsitul de sir
+		mov ah, 09h 
+		mov dx,offset sir_rezultat ;afisam
+		int 21h 
+
+		
+	
+	;afisam sirul citit in pasul anterior dar pentru afisare trebuie sa fie $ pe ultima pozitie
+	;mov si, len_zonacitire
+	;mov bl, '$'
+	;mov sircitit[si+1], bl
+		
+	; apel pentru afisare
+	;mov ah, 09h
+	;mov dx, offset sircitit + 2
+	;int 21h	
+	
+	mov ax, 4c00h
+	int 21h
+code ends
+end start
